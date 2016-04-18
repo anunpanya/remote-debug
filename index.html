@@ -1,0 +1,196 @@
+<script src="http://netpie.io/microgear.js"></script>
+
+<script>
+
+	const target = 'irremote';
+    var appid, appkey, appsecret;
+    var a = location.hash.substring(1).split(':');
+    if (a.length==3) {
+        appid = a[0];
+        appkey = a[1];
+        appsecret = a[2];
+    }
+    else {
+        alert("Please inclde APPID:APPKEY:APPSECRET as a url hash e.g. :\n\n index.html#APPID:APPKEY:APPSECRET");            
+    }
+    
+    var microgear = Microgear.create({
+        key: appkey,
+        secret: appsecret,
+        alias : "irconsole"
+    });
+
+	var indexNoIR = 0;
+	var indexNoStartUp = 0;
+	var d = 0;
+
+  	function send(msg) {
+  	  d = (new Date().getTime());
+	  microgear.chat(target,msg);
+	}
+
+
+	microgear.on('message',function(topic,msg) {
+		console.log(topic+" : "+msg);
+		if (topic.indexOf('/irremote/ls/default')>=0) {
+			var m = msg.split(';');
+
+			var e = document.getElementById('remote');
+			e.innerHTML = "";
+
+			for (var i=0; i<m.length; i++) {
+				e.innerHTML += "<a href=\"#\" class=\"btn btn-blue\" onclick=\"send('ir:/default/"+m[i]+"')\">"+m[i]+"</a>";
+			}
+		}
+
+		if (topic.indexOf('/anun/irremote/new')>=0) {
+			var newname = prompt('Name your new button');
+			send('mv:'+msg+':'+'/default/'+newname);
+			send('ls:/default');
+		}
+
+		if (topic.indexOf('/anun/test/timetest')>=0) {
+			var timeClock = (""+(new Date())).split(" ")[4];
+			document.getElementById("areaRight").value += "\n["+indexNoIR+"] "+timeClock+" S:"+d+", E:"+msg+", Total: "+(msg-d);
+			indexNoIR++;
+		}
+
+		if (topic.indexOf('/anun/test/startup')>=0) {
+			var timeClock = (""+(new Date())).split(" ")[4];
+			indexNoStartUp++;
+			document.getElementById("areaLeft").value += "\n["+indexNoStartUp+"] "+timeClock+" Total:"+msg;
+		}
+
+		
+	});
+
+
+	var xmlhttp = new XMLHttpRequest();
+
+	microgear.on('connected', function() {
+		microgear.subscribe('/irremote/#');
+		microgear.subscribe('/test/#');
+		//send('ls:/default');
+	    document.getElementById("data").innerHTML = "<FONT color=#00BB00>ONLINE</FONT>";
+
+	});
+
+	microgear.connect(appid);
+	
+
+	function sendAction(){
+		d = (new Date().getTime());
+		var bt = document.getElementById("in_bt").value;
+		var xmlhttp = new XMLHttpRequest();
+		var url = "https://api.netpie.io/action/publish?appid="+a[0]+"&topic=/gearname/irremote&msg=ir:/default/"+bt+"&auth="+a[1]+":"+a[2];
+		xmlhttp.open("GET", url, true);
+		xmlhttp.send();
+	}
+
+</script>
+
+ <style>
+
+a { text-decoration: none; margin: 0 10px; }
+a.btn {
+	display: inline-block;
+	color: #666;
+	background-color: #eee;
+	text-transform: uppercase;
+	letter-spacing: 2px;
+	font-size: 20px;
+	padding: 5px 20px;
+	border-radius: 5px;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+	border: 1px solid rgba(0,0,0,0.3);
+	border-bottom-width: 3px;
+}
+
+a.btn:hover {
+	background-color: #e3e3e3;
+	border-color: rgba(0,0,0,0.5);
+}
+
+a.btn:active {
+	background-color: #CCC;
+	border-color: rgba(0,0,0,0.9);
+}
+
+a.btn.btn-blue {
+	background-color: #699DB6;
+	border-color: rgba(0,0,0,0.3);
+	text-shadow: 0 1px 0 rgba(0,0,0,0.5);
+	color: #FFF;
+}
+
+a.btn.btn-blue:hover {
+	background-color: #4F87A2;
+	border-color: rgba(0,0,0,0.5);
+}
+
+a.btn.btn-blue:active {
+	background-color: #3C677B;
+	border-color: rgba(0,0,0,0.9);
+}
+</style>
+
+<div id="data" align=right><FONT COLOR=#DDDDDD>OFFLINE</FONT></div>
+
+<!--<a href="#" class="btn btn-blue" onclick="send('ls:/default')">reload</a>-->
+<a href="#" class="btn btn-blue" onclick="send('new')">+</a><br><br>
+
+<div id="remote" />
+
+<div>
+	<input type="text" id="in_bt" /><input type="button" onclick="sendAction()" value="send" />
+</div>
+
+<div>
+	<textarea style="width:50%;height:300px;float:left;" id="areaLeft"></textarea>
+	<textarea style="width:50%;height:300px;" id="areaRight"></textarea>
+</div>
+
+<script type="text/javascript">
+	
+	document.getElementById("areaLeft").value += "Timestamp Boot Startup";
+	document.getElementById("areaRight").value += "Timestamp Send IR";
+
+</script>
+<!--
+<br><br>
+
+<font size=4>TrueRemote powered by NETPIE<br><br>
+<a href="#" class="btn btn-blue" onclick="send('ir:/cv/on')">ON</a>
+<a href="#" class="btn btn-blue" onclick="send('ir:/cv/off')">OFF</a>
+
+<a href="#" class="btn btn-blue" onclick="send('3')">3</a>
+<br><br>
+
+<a href="#" class="btn btn-blue" onclick="send('4')">4</a>
+<a href="#" class="btn btn-blue" onclick="send('5')">5</a>
+<a href="#" class="btn btn-blue" onclick="send('6')">6</a>
+<br><br>
+
+<a href="#" class="btn btn-blue" onclick="send('7')">7</a>
+<a href="#" class="btn btn-blue" onclick="send('8')">8</a>
+<a href="#" class="btn btn-blue" onclick="send('9')">9</a>
+<br><br>
+
+<a href="#" class="btn btn-blue" onclick="send('0')">0</a>
+<a href="#" class="btn btn-blue" onclick="send('VDOWN')">V-</a>
+<a href="#" class="btn btn-blue" onclick="send('VUP')">V+</a>
+<br><br>
+
+<a href="#" class="btn btn-blue" onclick="send('EXIT')">EXIT</a>
+<a href="#" class="btn btn-blue" onclick="send('MUTE')">MUTE</a>
+<br><br>
+
+<a href="#" class="btn btn-blue" onclick="send('MENU')">MENU</a>
+<a href="#" class="btn btn-blue" onclick="send('UP')">UP</a>
+<br><br>
+
+<a href="#" class="btn btn-blue" onclick="send('BACK')">BACK</a>
+<a href="#" class="btn btn-blue" onclick="send('DOWN')">DOWN</a>
+<br><br>
+-->
